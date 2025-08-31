@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node (with pnpm cache)
@@ -19,20 +19,24 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Enable Corepack & prepare pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm -v
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Skapa en minimal .env för CI (egen databasfil i arbetskatalogen)
       - name: Create .env for CI
         run: |
-          printf "PORT=3000\nNODE_ENV=test\nDATABASE_URL=\"file:./dev.db\"\n" > .env
+          echo "PORT=3000" > .env
+          echo "NODE_ENV=test" >> .env
+          echo "DATABASE_URL=file:./dev.db" >> .env
 
-      # Generera Prisma Client + kör migrations icke-interaktivt
       - name: Prisma generate
         run: npx prisma generate
+
       - name: Prisma migrate (deploy)
         run: npx prisma migrate deploy
 
@@ -42,5 +46,5 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Test
+      - name: Run tests
         run: pnpm test
