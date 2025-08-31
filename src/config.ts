@@ -7,4 +7,10 @@ export const config = {
   rateLimitWindow: process.env.RATE_LIMIT_WINDOW ?? '1 minute',
 }
 
-export const isProd = config.nodeEnv === 'production'
+export const isProd =
+  (config.nodeEnv || '').toLowerCase() === 'production'
+
+// ✅ nytt: känn igen test/CI-läge
+export const isTest =
+  (config.nodeEnv || '').toLowerCase() === 'test' ||
+  process.env.CI === 'true'

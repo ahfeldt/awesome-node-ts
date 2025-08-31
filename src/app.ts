@@ -6,15 +6,17 @@ import swaggerUI from '@fastify/swagger-ui'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
-import { config, isProd } from './config'
+import { config, isProd, isTest } from './config'
 
 dotenv.config()
 
 export function buildApp() {
-  // Snyggare loggar i dev
+  // 👇 ändrat: i test/CI använder vi enkel logger (utan pino-pretty transport)
   const app = Fastify({
     logger: isProd
       ? true
+      : isTest
+      ? { level: 'warn' }
       : {
           transport: {
             target: 'pino-pretty',
@@ -25,7 +27,7 @@ export function buildApp() {
   })
 
   // Säkerhet + CORS
-  app.register(helmet) // säkra headers
+  app.register(helmet)
   app.register(cors, {
     origin: config.corsOrigin === '*' ? true : config.corsOrigin,
     credentials: true,
@@ -46,14 +48,10 @@ export function buildApp() {
       servers: [{ url: `http://localhost:${config.port}` }],
       components: {
         securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-          },
+          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
         },
       },
-      security: [{ bearerAuth: [] }], // framtidssäkrat – påverkar bara docs
+      security: [{ bearerAuth: [] }],
     },
   })
   app.register(swaggerUI, {
