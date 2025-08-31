@@ -12,11 +12,23 @@ export default tseslint.config(
     rules: {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-      "import/order": ["warn", { "newlines-between": "always", "alphabetize": { "order": "asc" } }]
+
+      // 👇 ändrat från "warn" till "off" så CI inte bryr sig om import-ordningen
+      "import/order": "off",
+
+      // 👇 ny regel: tillåt 'any' tills vi hunnit typa färdigt
+      "@typescript-eslint/no-explicit-any": "off"
     },
     linterOptions: {
       reportUnusedDisableDirectives: true
     },
     ignores: ["dist"]
+  },
+  // 👇 speciellt för test-filer: tillåt 'any' helt fritt
+  {
+    files: ["test/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off"
+    }
   }
 );
