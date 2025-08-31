@@ -1,0 +1,16 @@
+services:
+  api:
+    build: .
+    container_name: awesome-node-ts
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Tvinga SQLite att ligga i monterad volymen
+      DATABASE_URL: "file:/app/data/dev.db"
+    volumes:
+      - ./data:/app/data
+    # Om du vill se loggar direkt i terminalen
+    tty: true
+    stdin_open: true

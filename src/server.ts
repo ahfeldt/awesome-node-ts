@@ -1,16 +1,9 @@
-import Fastify from 'fastify'
-import dotenv from 'dotenv'
+import { buildApp } from './app'
+import { config } from './config'
 
-dotenv.config()
+const app = buildApp()
+const port = config.port
 
-const app = Fastify({
-  logger: true
-})
-
-app.get('/health', async () => ({ status: 'ok' }))
-app.get('/', async () => ({ hello: 'world' }))
-
-const port = Number(process.env.PORT || 3000)
 const start = async () => {
   try {
     await app.listen({ port, host: '0.0.0.0' })
