@@ -1,37 +1,36 @@
-# 1) Build stage
+# -------- Build stage --------
 FROM node:22-alpine AS build
 WORKDIR /app
 
+# pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Installera deps (fulla – inkl dev)
+# Installera alla deps (inkl dev) baserat på lockfil
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 
-# Kopiera källkod
+# Kopiera källkod och bygg
 COPY . .
-
-# 👇 VIKTIGT: generera Prisma Client (krävs för typegen)
-RUN npx prisma generate
-
-# Bygg TS -> dist
+# Ingen prisma generate här – onödigt och gör kopieringen knepig
 RUN pnpm build
 
-# 2) Runtime stage (oförändrat)
+# -------- Runtime stage --------
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
+# pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Installera endast prod-deps (detta triggar @prisma/client postinstall => prisma generate)
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --prod --frozen-lockfile
 
-COPY --from=build /app/node_modules/.prisma /app/node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma /app/node_modules/@prisma
+# Kopiera byggd kod och prisma-schemat
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 
 ENV PORT=3000
 EXPOSE 3000
+
 CMD ["node", "dist/server.js"]
