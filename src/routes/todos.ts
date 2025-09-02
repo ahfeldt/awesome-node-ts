@@ -3,9 +3,10 @@ import type {
   FastifyRequest,
   FastifyReply,
 } from 'fastify';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// ⬇️ CommonJS-paket i ESM: default-import + destructure
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 
 type IdParams = { id: string };
 
