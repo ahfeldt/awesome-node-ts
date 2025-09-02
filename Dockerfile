@@ -5,11 +5,11 @@ WORKDIR /app
 # pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Installera alla deps (inkl dev) baserat på lockfil
+# Installera alla deps (inkl dev)
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 
-# Kopiera källkod (inkl prisma) och generera Prisma Client för typer
+# Kopiera källkod och generera Prisma Client (för typer till tsc)
 COPY . .
 RUN npx prisma generate
 
@@ -24,11 +24,11 @@ ENV NODE_ENV=production
 # pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Installera endast prod-deps (triggar @prisma/client postinstall => prisma generate i runtime-lagret)
+# Installera endast prod-deps (triggar @prisma/client postinstall => prisma generate)
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --prod --frozen-lockfile
 
-# Kopiera byggd kod och prisma-schemat
+# Kopiera byggd kod + prisma-schemat
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 

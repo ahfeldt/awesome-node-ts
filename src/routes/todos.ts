@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify'
-import { prisma } from '../db'
+import { FastifyInstance } from 'fastify.js'
+import { prisma } from '../db.js'
 
 const TodoSchema = {
   type: 'object',
