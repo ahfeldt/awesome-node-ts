@@ -79,10 +79,13 @@ jobs:
             type=raw,enable=${{ github.ref == 'refs/heads/main' }},value=latest
 
       # Bygg & pusha
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/ahfeldt/awesome-node-ts:latest
+            ghcr.io/ahfeldt/awesome-node-ts:sha-${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
+
