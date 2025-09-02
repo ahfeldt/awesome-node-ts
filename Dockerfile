@@ -9,9 +9,11 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 
-# Kopiera källkod och bygg
+# Kopiera källkod (inkl prisma) och generera Prisma Client för typer
 COPY . .
-# Ingen prisma generate här – onödigt och gör kopieringen knepig
+RUN npx prisma generate
+
+# Bygg TS -> dist/
 RUN pnpm build
 
 # -------- Runtime stage --------
@@ -22,7 +24,7 @@ ENV NODE_ENV=production
 # pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Installera endast prod-deps (detta triggar @prisma/client postinstall => prisma generate)
+# Installera endast prod-deps (triggar @prisma/client postinstall => prisma generate i runtime-lagret)
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --prod --frozen-lockfile
 
