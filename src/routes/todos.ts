@@ -4,9 +4,9 @@ import type {
   FastifyReply,
 } from 'fastify';
 
-// ⬇️ CommonJS-paket i ESM: default-import + destructure
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+// ESM-säkert sätt: importera default-namnutrymmet och använd Prisma.PrismaClient
+import Prisma from '@prisma/client';
+const prisma = new Prisma.PrismaClient();
 
 type IdParams = { id: string };
 
