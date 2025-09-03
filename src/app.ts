@@ -1,33 +1,67 @@
-import Fastify from 'fastify';
-import dotenv from 'dotenv';
-import swagger from '@fastify/swagger';
-import swaggerUI from '@fastify/swagger-ui';
+import Fastify from "fastify";
+import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 
-import todosRoutes from './routes/todos.js';
+import todoRoutes from "./routes/todos";
 
-dotenv.config();
+export async function buildApp() {
+  const fastify = Fastify({
+    logger: true,
+  });
 
-export function buildApp() {
-  const app = Fastify({ logger: true });
-
-  app.get('/health', async () => ({ status: 'ok' }));
-  app.get('/', async () => ({ hello: 'world' }));
-
-  app.register(swagger, {
+  // Swagger setup
+  await fastify.register(fastifySwagger, {
     openapi: {
       info: {
-        title: 'Awesome Node TS API',
-        version: '1.0.0',
-        description: 'Todos API with Fastify + Prisma',
+        title: "Awesome Node TS API",
+        description: "Todos API with Fastify + Prisma",
+        version: "1.0.0",
+      },
+      components: {
+        schemas: {
+          Todo: {
+            type: "object",
+            properties: {
+              id: { type: "string", format: "uuid" },
+              title: { type: "string" },
+              completed: { type: "boolean" },
+              createdAt: { type: "string", format: "date-time" },
+              updatedAt: { type: "string", format: "date-time" },
+            },
+          },
+        },
       },
     },
   });
 
-  app.register(swaggerUI, {
-    routePrefix: '/docs',
+  await fastify.register(fastifySwaggerUi, {
+    routePrefix: "/docs",
+    uiConfig: {
+      docExpansion: "list",
+      deepLinking: false,
+    },
   });
 
-  app.register(todosRoutes, { prefix: '/todos' });
+  // Health check route
+  fastify.get("/health", async () => {
+    return { status: "ok" };
+  });
 
-  return app;
+  // Register routes
+  await fastify.register(todoRoutes, { prefix: "/todos" });
+
+  return fastify;
+}
+
+// Run the server
+if (require.main === module) {
+  (async () => {
+    const app = await buildApp();
+    try {
+      await app.listen({ port: Number(process.env.PORT) || 3000, host: "0.0.0.0" });
+    } catch (err) {
+      app.log.error(err);
+      process.exit(1);
+    }
+  })();
 }
