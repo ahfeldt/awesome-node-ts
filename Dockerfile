@@ -24,13 +24,18 @@ ENV NODE_ENV=production
 # pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# *** Viktigt: kopiera prisma före install så postinstall hittar schema ***
+COPY --from=build /app/prisma ./prisma
+
 # Installera endast prod-deps (triggar @prisma/client postinstall => prisma generate)
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --prod --frozen-lockfile
 
-# Kopiera byggd kod + prisma-schemat
+# Livrem: kör generate igen (snabbt, idempotent)
+RUN npx prisma generate
+
+# Kopiera byggd kod
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma
 
 ENV PORT=3000
 EXPOSE 3000
