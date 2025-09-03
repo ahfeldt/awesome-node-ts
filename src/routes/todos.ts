@@ -1,128 +1,129 @@
-import type {
-  FastifyPluginAsync,
-  FastifyRequest,
-  FastifyReply,
-} from 'fastify';
+import { FastifyInstance } from "fastify";
+import { PrismaClient } from "@prisma/client";
 
-// ESM-säkert sätt: importera default-namnutrymmet och använd Prisma.PrismaClient
-import Prisma from '@prisma/client';
-const prisma = new Prisma.PrismaClient();
+const prisma = new PrismaClient();
 
-type IdParams = { id: string };
+export default async function todoRoutes(fastify: FastifyInstance) {
+  // GET all todos
+  fastify.get("/", {
+    schema: {
+      tags: ["Todos"],
+      response: {
+        200: {
+          type: "array",
+          items: { $ref: "Todo#" },
+        },
+      },
+    },
+  }, async () => {
+    return prisma.todo.findMany();
+  });
 
-type CreateTodoBody = {
-  title: string;
-};
-
-type UpdateTodoBody = {
-  title?: string;
-  completed?: boolean;
-};
-
-const todosRoutes: FastifyPluginAsync = async (app) => {
-  // GET /todos -> lista alla
-  app.get(
-    '/',
-    async (_req: FastifyRequest, _reply: FastifyReply) => {
-      const todos = await prisma.todo.findMany({
-        orderBy: { createdAt: 'asc' },
-      });
-      return todos;
+  // GET todo by id
+  fastify.get("/:id", {
+    schema: {
+      tags: ["Todos"],
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+        },
+        required: ["id"],
+      },
+      response: {
+        200: { $ref: "Todo#" },
+        404: {
+          type: "object",
+          properties: {
+            message: { type: "string" },
+          },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const todo = await prisma.todo.findUnique({ where: { id } });
+    if (!todo) {
+      reply.code(404).send({ message: "Todo not found" });
+      return;
     }
-  );
+    return todo;
+  });
 
-  // POST /todos -> skapa
-  app.post(
-    '/',
-    async (
-      req: FastifyRequest<{ Body: CreateTodoBody }>,
-      reply: FastifyReply
-    ) => {
-      const { title } = req.body ?? {};
-      if (!title || typeof title !== 'string') {
-        return reply.status(400).send({
-          message: 'Invalid body: "title" is required',
-        });
-      }
+  // POST create todo
+  fastify.post("/", {
+    schema: {
+      tags: ["Todos"],
+      body: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+        },
+        required: ["title"],
+      },
+      response: {
+        200: { $ref: "Todo#" },
+      },
+    },
+  }, async (req) => {
+    const { title } = req.body as { title: string };
+    return prisma.todo.create({ data: { title } });
+  });
 
-      const todo = await prisma.todo.create({
-        data: { title, completed: false },
-      });
+  // PATCH update todo
+  fastify.patch("/:id", {
+    schema: {
+      tags: ["Todos"],
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+        },
+        required: ["id"],
+      },
+      body: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          completed: { type: "boolean" },
+        },
+      },
+      response: {
+        200: { $ref: "Todo#" },
+      },
+    },
+  }, async (req) => {
+    const { id } = req.params as { id: string };
+    const { title, completed } = req.body as { title?: string, completed?: boolean };
+    return prisma.todo.update({
+      where: { id },
+      data: { title, completed },
+    });
+  });
 
-      return reply.code(201).send(todo);
-    }
-  );
-
-  // GET /todos/:id -> hämta en
-  app.get(
-    '/:id',
-    async (
-      req: FastifyRequest<{ Params: IdParams }>,
-      reply: FastifyReply
-    ) => {
-      const todo = await prisma.todo.findUnique({
-        where: { id: req.params.id },
-      });
-      if (!todo) {
-        return reply.status(404).send({
-          message: 'Not Found',
-          error: 'Not Found',
-          statusCode: 404,
-        });
-      }
-      return todo;
-    }
-  );
-
-  // PATCH /todos/:id -> uppdatera
-  app.patch(
-    '/:id',
-    async (
-      req: FastifyRequest<{ Params: IdParams; Body: UpdateTodoBody }>,
-      reply: FastifyReply
-    ) => {
-      const { id } = req.params;
-      const data: UpdateTodoBody = {};
-      if (typeof req.body?.title === 'string') data.title = req.body.title;
-      if (typeof req.body?.completed === 'boolean')
-        data.completed = req.body.completed;
-
-      try {
-        const updated = await prisma.todo.update({
-          where: { id },
-          data,
-        });
-        return updated;
-      } catch {
-        return reply.status(404).send({
-          message: 'Not Found',
-          error: 'Not Found',
-          statusCode: 404,
-        });
-      }
-    }
-  );
-
-  // DELETE /todos/:id -> ta bort
-  app.delete(
-    '/:id',
-    async (
-      req: FastifyRequest<{ Params: IdParams }>,
-      reply: FastifyReply
-    ) => {
-      const { id } = req.params;
-      try {
-        await prisma.todo.delete({ where: { id } });
-        return reply.status(204).send();
-      } catch {
-        return reply.status(404).send({
-          message: 'Not Found',
-          error: 'Not Found',
-          statusCode: 404,
-        });
-      }
-    }
-  );
-};
-
-export default todosRoutes;
+  // DELETE todo
+  fastify.delete("/:id", {
+    schema: {
+      tags: ["Todos"],
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+        },
+        required: ["id"],
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            message: { type: "string" },
+          },
+        },
+      },
+    },
+  }, async (req) => {
+    const { id } = req.params as { id: string };
+    await prisma.todo.delete({ where: { id } });
+    return { message: "Todo deleted" };
+  });
+}
