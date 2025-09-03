@@ -7,7 +7,6 @@ export default async function todoRoutes(fastify: FastifyInstance) {
   // GET all todos
   fastify.get("/", {
     schema: {
-      tags: ["Todos"],
       response: {
         200: {
           type: "array",
@@ -19,46 +18,28 @@ export default async function todoRoutes(fastify: FastifyInstance) {
     return prisma.todo.findMany();
   });
 
-  // GET todo by id
-  fastify.get("/:id", {
+  // GET one todo by id
+  fastify.get<{ Params: { id: string } }>("/:id", {
     schema: {
-      tags: ["Todos"],
       params: {
         type: "object",
-        properties: {
-          id: { type: "string", format: "uuid" },
-        },
+        properties: { id: { type: "string", format: "uuid" } },
         required: ["id"],
       },
       response: {
         200: { $ref: "Todo#" },
-        404: {
-          type: "object",
-          properties: {
-            message: { type: "string" },
-          },
-        },
       },
     },
-  }, async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const todo = await prisma.todo.findUnique({ where: { id } });
-    if (!todo) {
-      reply.code(404).send({ message: "Todo not found" });
-      return;
-    }
-    return todo;
+  }, async (req) => {
+    return prisma.todo.findUnique({ where: { id: req.params.id } });
   });
 
-  // POST create todo
-  fastify.post("/", {
+  // POST create new todo
+  fastify.post<{ Body: { title: string } }>("/", {
     schema: {
-      tags: ["Todos"],
       body: {
         type: "object",
-        properties: {
-          title: { type: "string" },
-        },
+        properties: { title: { type: "string" } },
         required: ["title"],
       },
       response: {
@@ -66,19 +47,17 @@ export default async function todoRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (req) => {
-    const { title } = req.body as { title: string };
-    return prisma.todo.create({ data: { title } });
+    return prisma.todo.create({
+      data: { title: req.body.title },
+    });
   });
 
   // PATCH update todo
-  fastify.patch("/:id", {
+  fastify.patch<{ Params: { id: string }, Body: { title?: string; completed?: boolean } }>("/:id", {
     schema: {
-      tags: ["Todos"],
       params: {
         type: "object",
-        properties: {
-          id: { type: "string", format: "uuid" },
-        },
+        properties: { id: { type: "string", format: "uuid" } },
         required: ["id"],
       },
       body: {
@@ -93,37 +72,25 @@ export default async function todoRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (req) => {
-    const { id } = req.params as { id: string };
-    const { title, completed } = req.body as { title?: string, completed?: boolean };
     return prisma.todo.update({
-      where: { id },
-      data: { title, completed },
+      where: { id: req.params.id },
+      data: req.body,
     });
   });
 
   // DELETE todo
-  fastify.delete("/:id", {
+  fastify.delete<{ Params: { id: string } }>("/:id", {
     schema: {
-      tags: ["Todos"],
       params: {
         type: "object",
-        properties: {
-          id: { type: "string", format: "uuid" },
-        },
+        properties: { id: { type: "string", format: "uuid" } },
         required: ["id"],
       },
       response: {
-        200: {
-          type: "object",
-          properties: {
-            message: { type: "string" },
-          },
-        },
+        200: { $ref: "Todo#" },
       },
     },
   }, async (req) => {
-    const { id } = req.params as { id: string };
-    await prisma.todo.delete({ where: { id } });
-    return { message: "Todo deleted" };
+    return prisma.todo.delete({ where: { id: req.params.id } });
   });
 }
