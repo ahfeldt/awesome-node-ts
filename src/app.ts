@@ -10,12 +10,9 @@ dotenv.config();
 export function buildApp() {
   const app = Fastify({ logger: true });
 
-  // Health + root
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/', async () => ({ hello: 'world' }));
 
-  // --- Swagger / OpenAPI ---
-  // Minimal OpenAPI-metadata. Uppdatera titel/beskrivning när du vill.
   app.register(swagger, {
     openapi: {
       info: {
@@ -26,12 +23,10 @@ export function buildApp() {
     },
   });
 
-  // Swagger UI på /docs (JSON blir /docs/json)
   app.register(swaggerUI, {
     routePrefix: '/docs',
   });
 
-  // Todos-routes
   app.register(todosRoutes, { prefix: '/todos' });
 
   return app;
